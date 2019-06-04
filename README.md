@@ -5,4 +5,4 @@ This project will use the AEA Schedule to measure gender differences at the Annu
 
 We've paid someone to parse the data into readable csv format. The 2019 data is available under the `data/` folder.
 
-
+All code should be kept in the correct coding folder.
