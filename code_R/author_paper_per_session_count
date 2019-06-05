@@ -9,7 +9,6 @@ papers_important_rows<-select(output_2019, paper_title, session_title, session_j
 papers_important_rows_distinct<-distinct(papers_important_rows)
 count_papers_per_session<-count(papers_important_rows_distinct, session_title, session_jel_code)
 papers_per_session<- colnames(count_papers_per_session)[colnames(count_papers_per_session)=="n"] <- "number_of_papers"
-library(readr)
 output_2018 <- read_csv("data/output_2018.csv")
 authors_important_rows_2019<-authors_important_rows
 output_2016<-read.csv("data/output_2016.csv")
