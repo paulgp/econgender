@@ -5,6 +5,7 @@
 ## 3. Put necessary "library" statements at the beginning
 ## 4. Rather than copying lines of code for each year, construct a single
 ##    file from the different years, or use a loop. THe current file is too repetitive.
+## 5. Make sure to have the ".R" suffix on the file.
 ## Try redoing this file, but minimizing the amount of repetition, and writing comments
 ## to clarify the goals of each component.
 
