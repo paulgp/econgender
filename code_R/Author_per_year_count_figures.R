@@ -1,3 +1,5 @@
+
+## You can put line breaks to make these more readable
 select(count_authors_per_session_2019, number_of_authors_2019)%>% sum
 library(tidyverse)
 total_number_of_authors_all_years<-c(distinct(output_2019, author)%>%count(.), distinct(output_2018, author)%>%count(.), distinct(output_2016, author)%>%count(.), NA, distinct(output_2015, author)%>%count(.), distinct(output_2014, author)%>%count(.), distinct(output_2013, author)%>%count(.), distinct(output_2012, author)%>%count(.), distinct(output_2011, author)%>%count(.))

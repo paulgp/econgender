@@ -1,14 +1,35 @@
+
+## A couple of comments:
+## 1. Please put comments in describing what code chunks are supposed to do
+## 2. If there are redundant lines of code, take them out
+## 3. Put necessary "library" statements at the beginning
+## 4. Rather than copying lines of code for each year, construct a single
+##    file from the different years, or use a loop. THe current file is too repetitive.
+## Try redoing this file, but minimizing the amount of repetition, and writing comments
+## to clarify the goals of each component.
+
+## Put "library" statements at the beginning
 library(readr)
 output_2019 <- read_csv("data/output_2019.csv")
+
+## You can put line breaks to make these more readable
 authors_important_rows<-select(output_2019, author, session_title, session_jel_code)
 count_authors_per_session<-count(authors_important_rows, session_title, session_jel_code)
+
+## I'm not sure what these two lines of code are supposed to do
 authors_per_session<- colnames(count_authors_per_session)[colnamescount_authors_per_session)=="n"] <- "number_of_authors"
 colnames(count_authors_per_session)[colnamescount_authors_per_session)=="n"] <- "number_of_authors"
+
+## Similarly here, what is this supposed to do?
 authors_per_session<- colnames(count_authors_per_session)[colnames(count_authors_per_session)=="n"] <- "number_of_authors"
+
 papers_important_rows<-select(output_2019, paper_title, session_title, session_jel_code)
 papers_important_rows_distinct<-distinct(papers_important_rows)
 count_papers_per_session<-count(papers_important_rows_distinct, session_title, session_jel_code)
+
+## Similarly here, what is this supposed to do?
 papers_per_session<- colnames(count_papers_per_session)[colnames(count_papers_per_session)=="n"] <- "number_of_papers"
+
 output_2018 <- read_csv("data/output_2018.csv")
 authors_important_rows_2019<-authors_important_rows
 output_2016<-read.csv("data/output_2016.csv")
@@ -19,6 +40,8 @@ output_2012<-read.csv("data/output_2012.csv")
 output_2011<-read.csv("data/output_2011.csv")
 count_authors_per_session_2019<-count_authors_per_session
 papers_important_rows_2019<-papers_important_rows
+
+## Put "library" statements at the beginning of the file
 library(dplyr)
 authors_important_rows_2018<-select(output_2018, author, session_title, session_jel_code)
 count_authors_per_session_2018<-count(authors_important_rows_2018, session_title, session_jel_code)
