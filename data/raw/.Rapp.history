@@ -1,0 +1,51 @@
+load("/Users/PSG24/Downloads/ADH.rda")
+library(stringr)
+library(dplyr)
+setwd("~/repos/econgender")
+setwd("~/repos/econgender/data")
+output <- read.csv("output_2019.csv")#
+#
+nber <- read.csv("nber_master_gender.csv")
+setwd("~/repos/econgender/data/raw/")
+output <- read.csv("output_2019.csv")#
+#
+nber <- read.csv("nber_master_gender.csv")
+output <- read.csv("output_2019.csv")#
+#
+nber <- read.csv("../nber_master_gender.csv")
+facebook <- read.csv("../firstname_gender_facebook.csv")
+output_all_names <- data.frame(author = unlist(output[c(2,10,12,14,16,18,20)]), row.names = NULL)
+names_after_nber <- data.frame(author= setdiff(output$author, nber$author), row.names = NULL)
+names_after_nber[!word(names_after_nber$author, 1) %in% facebook$firstname,, drop = FALSE]
+!word(names_after_nber$author, 1) %in% facebook$firstname,
+!word(names_after_nber$author, 1) %in% facebook$firstname
+!(word(names_after_nber$author, 1) %in% facebook$firstname)
+!(word(names_after_nber$author, 1)
+)
+word(names_after_nber$author, 1)
+facebook$firstname
+names_after_nber[word(names_after_nber$author, 1) %in% facebook$firstname), drop = FALSE]
+names_after_nber[word(names_after_nber$author, 1) %in% facebook$firstname, drop = FALSE]
+names_after_nber[word(names_after_nber$author, 1) %in% facebook$firstname,, drop = FALSE]
+word(names_after_nber$author, 1) %in% facebook$firstname
+library(tidyverse)
+names_after_nber %>% mutate(firstname = word(author, 1)) %>% left_join(facebook)
+names_after_nber %>% mutate(firstname = word(author, 1)) %>% anti_join(facebook)
+final <- names_after_nber %>% mutate(firstname = word(author, 1)) %>% anti_join(facebook)
+length(final)
+head(final)
+rows(names_after_nber)
+nrows(names_after_nber)
+size(names_after_nber)
+dim(names_after_nber)
+dim(final)
+head(face)
+head(facebook)
+names_after_nber[!word(upper(names_after_nber$author, 1)) %in% facebook$firstname), drop = FALSE]
+names_after_nber[!word(upper(names_after_nber$author, 1)) %in% facebook$firstname, drop = FALSE]
+names_after_nber[!word(upper(names_after_nber$author, 1)) %in% facebook$firstname,, drop = FALSE]
+names_after_nber[!word(str_upper(names_after_nber$author, 1)) %in% facebook$firstname,, drop = FALSE]
+names_after_nber[!word(str_to_upper(names_after_nber$author, 1)) %in% facebook$firstname,, drop = FALSE]
+dim(names_after_nber[!word(str_to_upper(names_after_nber$author, 1)) %in% facebook$firstname,, drop = FALSE])
+names_after_nber[!word(str_to_upper(names_after_nber$author), 1) %in% facebook$firstname,, drop = FALSE]
+load("/Users/PSG24/Dropbox/MLS Network/New Data/full_data_feb16.RData")
