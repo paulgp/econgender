@@ -16,7 +16,7 @@ library(stringr)
 library(tidyverse)
 
 ##Create list of data frames
-files <- list.files(path = "/Users/naaseyarthur/Documents/trial", pattern = "*.csv", full.names = T)
+files <- list.files(path = "/Users/PSG24/repos/econgender/data/", pattern = "output_\\d+.csv", full.names = T)
 
 ##Create table for imports to be stored
 data <- tibble()

@@ -9,7 +9,7 @@ library(stringr)
 library(tidyverse)
 
 #Create list of AEA data frames
-AEAfiles <- list.files(path = "/Users/naaseyarthur/Documents/econgender/AEA", pattern = "*.csv", full.names = T)
+AEAfiles <- list.files(path = "/Users/PSG24/repos/econgender/data/raw/", pattern = "output_\\d*.csv", full.names = T)
 
 #Create table for AEA imports to be stored
 AEAdata <- tibble()
@@ -25,7 +25,7 @@ for(i in seq(1,length(AEAfiles))) {
 }
 
 #Create list of AER P&P data frames
-  AERfiles <- list.files(path = "/Users/naaseyarthur/Documents/econgender/AER_P&P", pattern = "*.csv", full.names = T)
+  AERfiles <- list.files(path = "/Users/PSG24/repos/econgender/data/raw/", pattern = "\\d*_P&P_Papers.csv", full.names = T)
   
 #Create table for AER P&P imports to be stored
   AERdata <- tibble()
