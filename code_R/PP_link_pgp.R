@@ -1,6 +1,3 @@
-;; This buffer is for text that is not saved, and for Lisp evaluation.
-;; To create a file, visit it with C-x C-f and enter text in its buffer.
-
 ##AEA in AER P&P Comparison
 
 #Load relevant libraries
@@ -45,19 +42,33 @@ for(i in seq(1,length(AERfiles))) {
   AERdata <- AERdata %>% bind_rows(input_file_AER)
 }
 
+
+## THis is the data that we want to match onto with authors and sessions
 AERdata_shape <- AERdata %>% mutate(author = str_replace_all(author, "[\\[|\'|\\]]", "")) %>% 
   separate(author, sep = ",", into=c("author1","author2","author3", "author4", "author5", "author6","author7", "author8", "author9")) %>%
   gather(author_num, author, -session_title, -paper_title, -year) %>%
-  mutate(author = trimws(author)) %>% select(-author_num) 
+  mutate(author = trimws(author)) %>% arrange( year, session_title, paper_title, author_num) %>%
+  filter(!is.na(author))
+  
   
 
-AEA_merge = AEAdata %>% select(session_title, paper_title, author, year) %>% 
-  filter(year == "2011") %>%
-  group_by(session_title, paper_title) %>%
-  arrange(session_title, paper_title, author) %>% 
-  filter(author != "") %>%
-  filter(row_number() == 1)  %>%
-  select(-year)
+
+#### First match on *sessions*
+AER_sessions = AERdata_shape %>% select(session_title, year) %>% unique()
+## There are 315 Sessions in total
+
+AEA_sessions = AEAdata %>% select(session_title, year) %>% unique()
+## There are 3794 potential sessions...
+
+## First, exact matches.
+exact_session_matches = AER_sessions %>% inner_join(AEA_sessions)
+## That matches 150 sessions. 
+remaining_AER_data = AERdata_shape %>% anti_join(AEA_sessions)
+## Leaving 155 Sessions
+
+
+### Next match on author and year
+
 
 
 base = AERdata_shape %>% filter(year == "2011") %>% group_by(session_title, paper_title) %>%
