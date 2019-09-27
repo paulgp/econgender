@@ -7,6 +7,7 @@ library(tidyr)
 library(stringr)
 library(tidyverse)
 library(fuzzyjoin)
+library(stringdist)
 
 #Create list of AEA data frames
 AEAfiles <- list.files(path = "/Users/PSG24/repos/econgender/data/raw/", pattern = "output_\\d*.csv", full.names = T)
@@ -62,13 +63,29 @@ AEA_sessions = AEAdata %>% select(session_title, year) %>% unique()
 
 ## First, exact matches.
 exact_session_matches = AER_sessions %>% inner_join(AEA_sessions)
+exact_session_matches_AER = AERdata_shape  %>% inner_join(AEAdata, by=c("session_title" = "session_title", "year"="year", "author" = "author"))
 ## That matches 150 sessions. 
-remaining_AER_data = AERdata_shape %>% anti_join(AEA_sessions)
+remaining_AER_data = AERdata_shape %>% anti_join(exact_session_matches)
+remaining_AEA_sessions = AEAdata %>% anti_join(exact_session_matches)
 ## Leaving 155 Sessions
 
 
-### Next match on author and year
-
+### No exact matches on author year and session title
+### so, match on author, year and then FUZZY match on session title
+remaining_AER_data %>% select(author, author_num, year, session_title) %>% 
+  inner_join(remaining_AEA_sessions, by=c("author"="author", "year"="year")) %>%
+  mutate(session_distance = stringdist(session_title.x, session_title.y)) %>% 
+  select(session_distance, everything()) %>%
+  group_by(paper_title, year, author_num) %>% 
+  arrange(session_distance) %>% 
+  ungroup() %>%
+  select(session_title.x, session_title.y, session_distance) %>% 
+  unique() %>%
+  group_by(session_title.x) %>% 
+  arrange(session_title.x, session_distance) %>% 
+  mutate(num_matches = n()) %>%
+  filter(row_number() == 1) %>% view()
+  
 
 
 base = AERdata_shape %>% filter(year == "2011") %>% group_by(session_title, paper_title) %>%
