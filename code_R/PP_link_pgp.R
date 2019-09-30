@@ -78,8 +78,8 @@ AERdata_shape %>% select(paper_title, year) %>% unique() %>% tally()
 AERdata_shape %>% select(paper_title, year) %>% unique() %>% group_by(year) %>% tally()
 
 ## First, we want to match up on sessions to find the selected "sessions"
-AER_sessions = AERdata_shape %>% ungroup() %>% select(session_title, year) %>% unique()
-## There are 315 Sessions in total
+AER_sessions = AERdata_shape %>% ungroup() %>% select(session_title, year) %>% filter(year != 2017) %>% unique()
+## There are 257 Sessions in total
 
 AEA_sessions = AEAdata %>% ungroup() %>% select(session_title, year) %>% unique()
 ## There are 3794 potential sessions...
@@ -111,7 +111,44 @@ matched_sessions_string = remaining_AER_sessions %>%
 remaining_AER_sessions %>% 
   filter(year != 2017) %>% 
   anti_join(matched_sessions_string, by = c("session_title" = "session_title.AER")) %>%
-  group_by(year) %>% tally()
+  tally()
+## 32 sessions out of 257 total
+
+## Before worrying about the other 32, let's link up the sessions we do match.
+## Use string matched cross walk to clean up AER data
+remaining_AER_data_clean = remaining_AER_data %>% left_join(matched_sessions_string, by=c("session_title" = "session_title.AER", "year")) %>%
+  mutate(session_title = case_when(is.na(session_title.AEA) ~ session_title, 
+                                   TRUE ~ session_title.AEA)) %>%
+  select(-session_title.AEA)
+
+## Now, redo the same exercise, but matching authors *within* sessions
+linked_AER_data = remaining_AER_data_clean %>% 
+  inner_join(AEAdata, by=c("session_title", "year")) %>%
+  mutate(author.x.fn = word(author.x,1),
+         author.x.ln = word(author.x,-1),
+         author.y.fn = word(author.y,1),
+         author.y.ln = word(author.y,-1)) %>%
+  unite("author.x.fl", author.x.fn, author.x.ln, sep=" ") %>%
+  unite("author.y.fl", author.y.fn, author.y.ln, sep=" ") %>%
+  mutate(author_dist = stringdist(author.x.fl, author.y.fl) / str_length(author.x.fl)) %>%
+  group_by(session_title, year, author.x) %>% 
+  arrange(session_title, year, author.x, author_dist) %>% 
+  filter(row_number() == 1)  %>% ungroup() %>% 
+  select(author_dist, author.x, author.y, everything()) %>%
+  arrange(year, session_title, paper_title.x, author.x) %>%
+  group_by(session_title, year, paper_title.y, author.y) %>% 
+  mutate(num_author_match_AEA = n()) %>%
+  arrange(session_title, year, paper_title.y, author.y, author_dist) %>% 
+  filter(row_number() == 1) %>%
+  select(-num_author_match_AEA) %>%
+  filter(author_dist <.5) 
+
+## Match it back to the AEA data to get the authors who didn't match
+remaining_AER_data_clean %>% 
+  left_join(linked_AER_data, 
+            by= c("session_title", "year", "paper_title" = "paper_title.x", "author" = "author.x", "author_num")) %>%
+  group_by(session_title) %>% mutate(num_matches_session = sum(!is.na(author.y))) %>% 
+  select(num_matches_session, everything()) %>% filter(num_matches_session != 0)
 
 ## First match on year and paper titles, and then make sure we get the right authors
 AERdata_shape %>% group_by(paper_title, year) %>% mutate(num_authors = n()) %>% ungroup() %>% 
