@@ -49,25 +49,92 @@ AERdata_shape <- AERdata %>% mutate(author = str_replace_all(author, "[\\[|\'|\\
   separate(author, sep = ",", into=c("author1","author2","author3", "author4", "author5", "author6","author7", "author8", "author9")) %>%
   gather(author_num, author, -session_title, -paper_title, -year) %>%
   mutate(author = trimws(author)) %>% arrange( year, session_title, paper_title, author_num) %>%
-  filter(!is.na(author))
+  filter(!is.na(author)) %>% 
+  filter(author != "") %>%
+  mutate(author = str_replace_all(author, '\"', "")) %>%
+  mutate(author = trimws(author)) %>%
+  mutate(paper_title = str_replace_all(paper_title, '\"', "")) %>%
+  mutate(paper_title = trimws(paper_title))  %>%
+  filter(!(session_title %in% c("Proceedings", "Proceedings: Reports", "Richard T. Ely Lecture", "Reports", "Contents")))
+
+## clean up authors and sessions:
+AEAdata = AEAdata %>% 
+  filter(!is.na(author)) %>% 
+  filter(author != "") %>%
+  mutate(author = str_replace_all(author, '\"', "")) %>%
+  mutate(author = trimws(author)) %>%
+  mutate(paper_title = str_replace_all(paper_title, '\"', "")) %>%
+  mutate(paper_title = trimws(paper_title))  %>%
+  mutate(session_title = str_replace_all(session_title, '([A-Z][1-9], [A-Z][1-9])', "")) %>%
+  mutate(session_title = str_replace_all(session_title, fixed("()"), ""))
   
-  
+## How many times is an author in the AER Data (in a given year)?
+## Some people have more than one AER P&P in a given year.
 
 
-#### First match on *sessions*
-AER_sessions = AERdata_shape %>% select(session_title, year) %>% unique()
+
+## Basic stats on the AER P&Ps -- 1178 papers, relatively equal over time. :
+AERdata_shape %>% select(paper_title, year) %>% unique() %>% tally()
+AERdata_shape %>% select(paper_title, year) %>% unique() %>% group_by(year) %>% tally()
+
+## First, we want to match up on sessions to find the selected "sessions"
+AER_sessions = AERdata_shape %>% ungroup() %>% select(session_title, year) %>% unique()
 ## There are 315 Sessions in total
 
-AEA_sessions = AEAdata %>% select(session_title, year) %>% unique()
+AEA_sessions = AEAdata %>% ungroup() %>% select(session_title, year) %>% unique()
 ## There are 3794 potential sessions...
 
 ## First, exact matches.
 exact_session_matches = AER_sessions %>% inner_join(AEA_sessions)
 exact_session_matches_AER = AERdata_shape  %>% inner_join(AEAdata, by=c("session_title" = "session_title", "year"="year", "author" = "author"))
-## That matches 150 sessions. 
+## That matches 150 sessions. Need to then link the papers and authors within this. 
 remaining_AER_data = AERdata_shape %>% anti_join(exact_session_matches)
-remaining_AEA_sessions = AEAdata %>% anti_join(exact_session_matches)
+remaining_AEA_data = AEAdata %>% anti_join(exact_session_matches)
+remaining_AER_sessions = AER_sessions %>% anti_join(exact_session_matches)
+remaining_AEA_sessions = AEA_sessions %>% anti_join(exact_session_matches)
+
 ## Leaving 155 Sessions
+## How close are these sessions?
+matched_sessions_string = remaining_AER_sessions %>% 
+  left_join(AEA_sessions, by=c("year", "year")) %>%
+  mutate(session_dist = stringdist(session_title.x, session_title.y)) %>%
+  group_by(session_title.x) %>% arrange(session_dist) %>%
+  filter(row_number() == 1) %>%
+  mutate(session_dist = session_dist / str_length(session_title.x)) %>% ungroup() %>% arrange(session_dist) %>% 
+  filter(year != 2017) %>% 
+  filter(session_dist < .21) %>%
+  rename(session_title.AER = session_title.x,
+         session_title.AEA = session_title.y) %>%
+  select(-session_dist)
+
+## After string matches, leaving...
+remaining_AER_sessions %>% 
+  filter(year != 2017) %>% 
+  anti_join(matched_sessions_string, by = c("session_title" = "session_title.AER")) %>%
+  group_by(year) %>% tally()
+
+## First match on year and paper titles, and then make sure we get the right authors
+AERdata_shape %>% group_by(paper_title, year) %>% mutate(num_authors = n()) %>% ungroup() %>% 
+  inner_join(AEAdata, 
+             by = c("year", "paper_title")) %>%
+  mutate(author_dist = stringdist(author.x, author.y)) %>%
+  group_by(year, paper_title, author.x) %>% arrange(author.x, author_dist) %>%
+  #filter(author_dist < 5) %>% 
+  mutate(match = author_dist < 5) %>%
+  group_by(year, paper_title) %>%
+  mutate(num_matches = sum(match)) %>%
+  group_by(year, paper_title, author.x) %>%
+  filter(row_number() == 1) %>%
+  filter(num_matches != num_authors) %>%
+  select(author_dist, match, num_matches, num_authors, author.x, author.y) %>% arrange(paper_title, author.x) %>% view()
+
+
+## Five distance ensures unique authors
+## But, does it ensure all authors on paper are found?
+## There are 80 papers where it doesn't get everyone...
+## Turns out that there 
+
+
 
 
 ### No exact matches on author year and session title
