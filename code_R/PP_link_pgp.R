@@ -116,7 +116,7 @@ remaining_AER_sessions %>%
 
 ## Before worrying about the other 32, let's link up the sessions we do match.
 ## Use string matched cross walk to clean up AER data
-remaining_AER_data_clean = remaining_AER_data %>% left_join(matched_sessions_string, by=c("session_title" = "session_title.AER", "year")) %>%
+remaining_AER_data_clean = AERdata_shape %>% left_join(matched_sessions_string, by=c("session_title" = "session_title.AER", "year")) %>%
   mutate(session_title = case_when(is.na(session_title.AEA) ~ session_title, 
                                    TRUE ~ session_title.AEA)) %>%
   select(-session_title.AEA)
@@ -141,10 +141,11 @@ linked_AER_data = remaining_AER_data_clean %>%
   arrange(session_title, year, paper_title.y, author.y, author_dist) %>% 
   filter(row_number() == 1) %>%
   select(-num_author_match_AEA) %>%
-  filter(author_dist <.5) 
+  filter(author_dist < .5) %>%
+  ungroup()
 
 ## Match it back to the AEA data to get the authors who didn't match
-remaining_AER_data_clean %>% 
+linked_AER_data_all = remaining_AER_data_clean %>% 
   left_join(linked_AER_data, 
             by= c("session_title", "year", "paper_title" = "paper_title.x", "author" = "author.x", "author_num")) %>%
   group_by(session_title) %>% mutate(num_matches_session = sum(!is.na(author.y))) %>% 
