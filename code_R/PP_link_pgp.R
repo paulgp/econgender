@@ -151,62 +151,6 @@ linked_AER_data_all = remaining_AER_data_clean %>%
   group_by(session_title) %>% mutate(num_matches_session = sum(!is.na(author.y))) %>% 
   select(num_matches_session, everything()) %>% filter(num_matches_session != 0)
 
-## First match on year and paper titles, and then make sure we get the right authors
-AERdata_shape %>% group_by(paper_title, year) %>% mutate(num_authors = n()) %>% ungroup() %>% 
-  inner_join(AEAdata, 
-             by = c("year", "paper_title")) %>%
-  mutate(author_dist = stringdist(author.x, author.y)) %>%
-  group_by(year, paper_title, author.x) %>% arrange(author.x, author_dist) %>%
-  #filter(author_dist < 5) %>% 
-  mutate(match = author_dist < 5) %>%
-  group_by(year, paper_title) %>%
-  mutate(num_matches = sum(match)) %>%
-  group_by(year, paper_title, author.x) %>%
-  filter(row_number() == 1) %>%
-  filter(num_matches != num_authors) %>%
-  select(author_dist, match, num_matches, num_authors, author.x, author.y) %>% arrange(paper_title, author.x) %>% view()
 
-
-## Five distance ensures unique authors
-## But, does it ensure all authors on paper are found?
-## There are 80 papers where it doesn't get everyone...
-## Turns out that there 
-
-
-
-
-### No exact matches on author year and session title
-### so, match on author, year and then FUZZY match on session title
-remaining_AER_data %>% select(author, author_num, year, session_title) %>% 
-  inner_join(remaining_AEA_sessions, by=c("author"="author", "year"="year")) %>%
-  mutate(session_distance = stringdist(session_title.x, session_title.y)) %>% 
-  select(session_distance, everything()) %>%
-  group_by(paper_title, year, author_num) %>% 
-  arrange(session_distance) %>% 
-  ungroup() %>%
-  select(session_title.x, session_title.y, session_distance) %>% 
-  unique() %>%
-  group_by(session_title.x) %>% 
-  arrange(session_title.x, session_distance) %>% 
-  mutate(num_matches = n()) %>%
-  filter(row_number() == 1) %>% view()
-  
-
-
-base = AERdata_shape %>% filter(year == "2011") %>% group_by(session_title, paper_title) %>%
-  arrange(session_title, paper_title, author) %>%
-  filter(row_number() == 1) 
-#136 rows in 2011
-
-a = AERdata_shape %>% filter(year == "2011") %>% 
-  select(session_title, paper_title, author, year) %>%
-  group_by(session_title, paper_title) %>%
-  arrange(session_title, paper_title, author) %>%
-  filter(author != "") %>%
-  filter(row_number() == 1) %>%
-  stringdist_left_join(AEA_merge, distance_col = "distance", by=c("session_title", "author"), max_dist=20) %>%
-  ungroup() %>% 
-  group_by(session_title.x, author.x) %>%
-  arrange(session_title.x, author.x, paper_title.x, session_title.distance, author.distance) %>%
-  filter(row_number() == 1) %>% 
-  filter(session_title.distance < 3)
+## Given these, we can mostly identify which papers in the AEA which were selected. That's our main outcome of interest. 
+## Hence, we need to create a crosswalk that links an identifier to the session_title + year + paper on the AEA program. 
