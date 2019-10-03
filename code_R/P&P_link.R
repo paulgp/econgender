@@ -7,17 +7,14 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 library(tidyverse)
-library(fuzzyjoin)
 
 #Create list of AEA data frames
-AEAfiles <- list.files(path = "/Users/naaseyarthur/Documents/econgender/data/raw/AEA", pattern = "output_\\d*.csv", full.names = T)
-
+AEAfiles <- list.files(path = "/Users/PSG24/repos/econgender/data/raw/", pattern = "output_\\d*.csv", full.names = T)
 
 #Create table for AEA imports to be stored
 AEAdata <- tibble()
 
 #Import AEA data frames and organise them per year
-##I should probably use the glue package
 for(i in seq(1,length(AEAfiles))) {
   fn_AEA <- AEAfiles[i]
   year_match_AEA <- "output_(\\d+)\\.csv"
@@ -28,54 +25,46 @@ for(i in seq(1,length(AEAfiles))) {
 }
 
 #Create list of AER P&P data frames
-AERfiles <- list.files(path = "/Users/naaseyarthur/Documents/econgender/data/raw/", pattern = "\\d*_P&P_Papers.csv", full.names = T)
-
+  AERfiles <- list.files(path = "/Users/PSG24/repos/econgender/data/raw/", pattern = "\\d*_P&P_Papers.csv", full.names = T)
+  
 #Create table for AER P&P imports to be stored
-AERdata <- tibble()
-
+  AERdata <- tibble()
+  
 #Import AER P&P data frames and organise them per year
-for(i in seq(1,length(AERfiles))) {
-  fn_AER <- AERfiles[i]
-  year_match_AER <- "(\\d+)_P&P_Papers.csv"
-  year_AER <- str_match(fn_AER,year_match_AER)
-  print(as.numeric(year_AER[2]))
-  input_file_AER<- read_csv(fn_AER, col_types = cols(time = col_character())) %>% mutate(year= year_AER[2])
-  AERdata <- AERdata %>% bind_rows(input_file_AER)
-}
-
-#Fix NA error in fuzzy string package
-AEAdata[is.na(AEAdata)] <- "empty_string"
+  for(i in seq(1,length(AERfiles))) {
+    fn_AER <- AERfiles[i]
+    year_match_AER <- "(\\d+)_P&P_Papers.csv"
+    year_AER <- str_match(fn_AER,year_match_AER)
+    print(as.numeric(year_AER[2]))
+    input_file_AER<- read_csv(fn_AER, col_types = cols(time = col_character())) %>% mutate(year= year_AER[2])
+    AERdata <- AERdata %>% bind_rows(input_file_AER)
+    }
 
 #Creating linked dataframe with P&P indicator 
 AEAlinked <- 
   AEAdata %>%
-  stringdist_left_join(AERdata, distance_col =5 %>% transmute(paper_title, author, year, PandP = 'yes')) %>%
+  left_join(AERdata %>% transmute(author, paper_title, PandP = 'yes')) %>%
   replace_na(list(PandP = 'no'))
+
+#Export linked dataframe with P&P indicator
+write.csv(AEAlinked, "AEAlinked.csv")
+
 
 ##Checking that (almost) all records in AER P&P are in AEA
 #Create linked data
 AERlinked<-
   AERdata %>%
-  stringdist_left_join(AEAdata, distance_col =5 %>% transmute(author, paper_title, year, AEA = 'yes')) %>%
+  left_join(AEAdata %>% transmute(author, paper_title, year, AEA = 'yes')) %>%
   replace_na(list(AEA = 'no'))
 
 #Compute percent of P&P in AEA
 percent_link<-(tally(AERlinked, AEA=='yes')/tally(AERlinked)*100) %>% as.numeric
-###Was close to 40%?
+###21% for now?
 ###Should be close to 100%
 ###Yet to verify this value
 
 ##Compute share of AEA in P&P
 sharePandP<-(tally(AEAlinked, PandP=='yes')/tally(AEAlinked)*100)%>%as.numeric
 
-#Create table showing comparison results
-AEA_PandP_compare<-tibble(sharePandP, percent_link)
 
-#Export table showing comparison results
-write.csv(AEA_PandP_compare, "AEA_PandP_compare.csv")
 
-#Replace "empty_string" with default NA in AEAlinked data set
-AEAdata[is.na(AEAdata)] <- "NA"
-
-#Export linked dataframe with P&P indicator
-write.csv(AEAlinked, "AEAlinked.csv")
