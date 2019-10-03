@@ -2,6 +2,7 @@
 require(tidyverse)
 require(stringr)
 require(readxl)
+require(haven)
 dblue = rgb(0,114,178,maxColorValue = 255)
 dred = rgb(213,94,0,maxColorValue = 255)
 
@@ -75,8 +76,8 @@ load_aea_data <- function() {
     select(-gender_facebook) %>%
     mutate(female = case_when(gender == "F" ~ 1,
                               gender == "M" ~ 0)) %>%
-    mutate(female = case_when(gender == "M" ~ 1,
-                              gender == "F" ~ 0)) %>%
+    mutate(male = case_when(gender == "M" ~ 1,
+                              gender == "F" ~ 0)) 
   
   return(aea_output_final)
 }
@@ -270,7 +271,11 @@ yearly_gender.aea = aea_data.pp %>%
   mutate(year = as.numeric(year)) %>%
   mutate(group = "AEA")
 
-yearly_gender = bind_rows(yearly_gender.nber, yearly_gender.aea)
+yearly_gender = bind_rows(yearly_gender.nber, yearly_gender.aea) %>% 
+  spread(group, share_female) %>% 
+  mutate(AEA = replace_na(AEA, 0),
+         NBER = replace_na(NBER, 0)) %>%
+  gather(group, share_female, -year)
 
 ggplot(data = yearly_gender, aes(y = share_female, x = year, fill = group)) + 
   geom_col(position = position_dodge()) +
@@ -290,14 +295,146 @@ ggplot(data = yearly_gender, aes(y = share_female, x = year, fill = group)) +
 
 
 ## Gender by group by Year
-nber_data %>%
+gender.nber.fields = nber_data %>%
   filter(role == "author") %>%
   mutate(female = case_when(gender == "Female" ~ 1,
                             gender == "Male" ~ 0)) %>% 
-  select(year, code, paper_title, author, female, field ) %>% group_by(field, year) %>% tally()
+  select(year, code, paper_title, author, female, field ) %>% group_by(field) %>% tally()
 
-aea_data.pp %>% 
-  select(year, session_jel_code, paper_title, author, female ) %>% group_by(session_jel_code) %>% tally() %>% view()
+jel_code_names = read_csv("/Users/PSG24/repos/econgender/data/modified/jel_code_names.csv")
 
 
-           
+### 2015 and 2016 years had transcription errors
+gender.aea.codes = aea_data.pp %>% 
+  select(year, session_jel_code, session_title, paper_title, author, female ) %>% 
+  separate(session_jel_code, into=c("code1", "code2", "code3"), sep=", ") %>% 
+  mutate(topic_code1 = substr(code1, 1,1)) %>%
+  mutate(topic_code2 = substr(code2, 1,1)) %>%
+  mutate(topic_code3 = substr(code3, 1,1)) %>%
+  mutate(topic_code1 = case_when(topic_code1 == "?" ~ "?",
+                                 topic_code1 == ""  ~ "?",
+                                 TRUE               ~ topic_code1)) %>%
+  #filter(year != 2016 & year != 2015) %>% 
+  group_by(topic_code1) %>% 
+  summarize(share_female = mean(female, na.rm = TRUE)) %>%
+  left_join(jel_code_names, by=c("topic_code1" = "topic_code")) 
+
+gender.aea.codes = gender.aea.codes %>%
+  mutate(topic_code1 = factor(topic_code1, labels = gender.aea.codes$topic_title))
+
+ggplot(data = gender.aea.codes, aes(y = share_female, x =  reorder(topic_code1, -share_female))) + 
+  geom_col(fill = dblue) +
+  coord_flip()  +
+  # scale_fill_manual(values = c(dblue, dred),
+  #                   labels = c("AEA", "NBER")) +
+  scale_y_continuous(expand = c(0,0), limits=c(0,0.4)) +
+  theme_classic() +
+  theme(text = element_text(size=16)) +
+  # theme(text = element_text(size=12),
+  #       legend.position = c(0.25, 0.95),
+  #       legend.justification = c("right", "top")) +
+  labs(
+    y = "",
+    x = ""
+    #fill = "Conference"
+  )
+
+
+## JEL codes by P&P
+pp.aea.codes = aea_data.pp %>% 
+  select(year, session_jel_code, session_title, paper_title, author, female, aer_pp ) %>% 
+  separate(session_jel_code, into=c("code1", "code2", "code3"), sep=", ") %>% 
+  mutate(topic_code1 = substr(code1, 1,1)) %>%
+  mutate(topic_code2 = substr(code2, 1,1)) %>%
+  mutate(topic_code3 = substr(code3, 1,1)) %>%
+  mutate(topic_code1 = case_when(topic_code1 == "?" ~ "?",
+                                 topic_code1 == ""  ~ "?",
+                                 TRUE               ~ topic_code1)) %>%
+  #filter(year != 2016 & year != 2015) %>% 
+  group_by(topic_code1) %>% 
+  summarize(aer_pp = mean(aer_pp, na.rm = TRUE)) %>%
+  left_join(jel_code_names, by=c("topic_code1" = "topic_code")) 
+
+pp.aea.codes = pp.aea.codes %>%
+  mutate(topic_code1 = factor(topic_code1, labels = gender.aea.codes$topic_title))
+
+ggplot(data = pp.aea.codes, aes(y = aer_pp, x =  reorder(topic_code1, -aer_pp))) + 
+  geom_col(fill = dblue) +
+  coord_flip()  +
+  # scale_fill_manual(values = c(dblue, dred),
+  #                   labels = c("AEA", "NBER")) +
+  scale_y_continuous(expand = c(0,0), limits=c(0,0.12)) +
+  theme_classic() +
+  theme(text = element_text(size=16)) +
+  # theme(text = element_text(size=12),
+  #       legend.position = c(0.25, 0.95),
+  #       legend.justification = c("right", "top")) +
+  labs(
+    y = "",
+    x = ""
+    #fill = "Conference"
+  )
+
+## gendder share by JEL codes X P&P
+gender.aea.codes.pp = aea_data.pp %>% 
+  select(year, session_jel_code, session_title, paper_title, author, female, aer_pp ) %>% 
+  separate(session_jel_code, into=c("code1", "code2", "code3"), sep=", ") %>% 
+  mutate(topic_code1 = substr(code1, 1,1)) %>%
+  mutate(topic_code2 = substr(code2, 1,1)) %>%
+  mutate(topic_code3 = substr(code3, 1,1)) %>%
+  mutate(topic_code1 = case_when(topic_code1 == "?" ~ "?",
+                                 topic_code1 == ""  ~ "?",
+                                 TRUE               ~ topic_code1)) %>%
+  #filter(year != 2016 & year != 2015) %>% 
+  group_by(topic_code1, aer_pp) %>% 
+  summarize(share_female = mean(female, na.rm = TRUE)) %>%
+  left_join(jel_code_names, by=c("topic_code1" = "topic_code"))  %>%
+  ungroup()
+
+gender.aea.codes.pp = gender.aea.codes.pp %>%
+  mutate(topic_code1 = factor(topic_code1, labels = gender.aea.codes$topic_title)) %>%
+  group_by(topic_code1) %>%
+  mutate(had_aer_pp = max(aer_pp)) %>%
+  filter(had_aer_pp == 1)
+
+ggplot(data = gender.aea.codes.pp, aes(y = share_female, x =  reorder(topic_code1, -share_female))) + 
+  geom_col(fill = dblue) +
+  coord_flip()  +
+  # scale_fill_manual(values = c(dblue, dred),
+  #                   labels = c("AEA", "NBER")) +
+  #scale_y_continuous(expand = c(0,0), limits=c(0,0.12)) +
+  theme_classic() +
+  theme(text = element_text(size=16)) +
+  # theme(text = element_text(size=12),
+  #       legend.position = c(0.25, 0.95),
+  #       legend.justification = c("right", "top")) +
+  labs(
+    y = "",
+    x = ""
+    #fill = "Conference"
+  ) +
+  facet_wrap(~aer_pp)
+
+ggplot(data = gender.aea.codes.pp %>% ungroup() %>%
+         select(topic_code1, aer_pp, share_female) %>%
+         spread(aer_pp, share_female ) %>%
+         mutate(diff = `TRUE` - `FALSE`), aes(y = diff, x =  reorder(topic_code1, -diff))) + 
+  geom_col(fill = dblue) +
+  coord_flip()  +
+  # scale_fill_manual(values = c(dblue, dred),
+  #                   labels = c("AEA", "NBER")) +
+  #scale_y_continuous(expand = c(0,0), limits=c(0,0.12)) +
+  theme_classic() +
+  theme(text = element_text(size=16)) +
+  # theme(text = element_text(size=12),
+  #       legend.position = c(0.25, 0.95),
+  #       legend.justification = c("right", "top")) +
+  labs(
+    y = "",
+    x = ""
+    #fill = "Conference"
+  ) 
+
+
+
+
